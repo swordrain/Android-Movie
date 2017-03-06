@@ -1,15 +1,14 @@
-package edu.self.movies.fragment;
-
+package edu.self.movies.activity;
 
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.support.v7.widget.SearchView;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -28,59 +27,32 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 
-/**
- * A simple {@link Fragment} subclass.
- */
-public class Top250Fragment extends Fragment {
+public class SearchActivity extends AppCompatActivity {
 
-    private SwipeRefreshLayout top250SwipeRefreshLayout;
-    private RecyclerView top250RecyclerView;
+    private Toolbar toolbar;
+    private SearchView searchView;
+    private RecyclerView searchRecyclerView;
     private MovieAdapter adapter;
-    private View view;
     private MovieStore movieStore = MovieStore.getInstance();
     private boolean isRefreshing = false;
 
-    public Top250Fragment() {
-        // Required empty public constructor
-    }
-
-
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        view = inflater.inflate(R.layout.fragment_top250, container, false);
-        initControls();
-        return view;
-    }
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_search);
 
-    private void initControls(){
-        top250RecyclerView = (RecyclerView)view.findViewById(R.id.top250_recycler_view);
-        top250SwipeRefreshLayout = (SwipeRefreshLayout)view.findViewById(R.id.top250_swipe_refresh);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        toolbar = (Toolbar) findViewById(R.id.search_toolbar);
 
-        if(movieStore.getTop250MovieList().size() == 0){
-            fetchData();
-        }
+        setSupportActionBar(toolbar);
 
-        adapter = new MovieAdapter(movieStore.getTop250MovieList());
-        top250RecyclerView.setAdapter(adapter);
-        top250RecyclerView.setLayoutManager(layoutManager);
-        top250RecyclerView.setItemAnimator(new DefaultItemAnimator());
+        searchRecyclerView = (RecyclerView)findViewById(R.id.rearch_recycler_view);
+        adapter = new MovieAdapter(movieStore.getSearchList());
+        searchRecyclerView.setAdapter(adapter);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        searchRecyclerView.setLayoutManager(layoutManager);
+        searchRecyclerView.setItemAnimator(new DefaultItemAnimator());
 
-
-
-        top250SwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                movieStore.setTop250Total(0);
-                movieStore.getTop250MovieList().clear();
-                fetchData();
-            }
-        });
-
-
-        top250RecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        searchRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
 
@@ -94,7 +66,7 @@ public class Top250Fragment extends Fragment {
                 //RecyclerView的滑动状态
                 int state = recyclerView.getScrollState();
                 if(visibleItemCount > 0 && lastVisibleItemPosition == totalItemCount - 1 && state == recyclerView.SCROLL_STATE_IDLE){
-                    fetchData();
+                    fetchSearchResult(searchView.getQuery().toString());
                 }
             }
 
@@ -104,21 +76,41 @@ public class Top250Fragment extends Fragment {
 
             }
         });
-
-
     }
 
-    private void fetchData(){
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.search_menu, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.search);
+        searchView = (SearchView)searchItem.getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                movieStore.getSearchList().clear();
+                movieStore.setSearchTotal(0);
+                fetchSearchResult(query);
+                searchView.clearFocus();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+        return true;
+    }
+
+    private void fetchSearchResult(String query){
         if(!isRefreshing) {
             final List<Movie> movies = new ArrayList<>();
-            if (movieStore.getTop250Total() == 0 || movieStore.getTop250Total() != movieStore.getTop250MovieList().size()) {
+            if (movieStore.getSearchTotal() == 0 || movieStore.getSearchTotal() != movieStore.getSearchList().size()) {
                 isRefreshing = true;
-                top250SwipeRefreshLayout.setRefreshing(true);
-                HttpUtil.sendHttpGetRequest("https://api.douban.com/v2/movie/top250?start=" + movieStore.getTop250MovieList().size(), new Callback() {
+                HttpUtil.sendHttpGetRequest("https://api.douban.com/v2/movie/search?q=" + query + "&start=" + movieStore.getSearchList().size(), new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
                         e.printStackTrace();
-                        top250SwipeRefreshLayout.setRefreshing(false);
                         isRefreshing = false;
                     }
 
@@ -126,14 +118,13 @@ public class Top250Fragment extends Fragment {
                     public void onResponse(Call call, Response response) throws IOException {
                         isRefreshing = false;
                         final String responseStr = response.body().string();
-                        getActivity().runOnUiThread(new Runnable() {
+                        runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                top250SwipeRefreshLayout.setRefreshing(false);
                                 try {
                                     JSONObject responseJsonObject = new JSONObject(responseStr);
                                     JSONArray movieArray = responseJsonObject.getJSONArray("subjects");
-                                    movieStore.setTop250Total(responseJsonObject.getInt("total"));
+                                    movieStore.setSearchTotal(responseJsonObject.getInt("total"));
                                     for (int i = 0; i < movieArray.length(); i++) {
                                         Movie movie = new Movie();
                                         JSONObject movieObject = movieArray.getJSONObject(i);
@@ -143,8 +134,6 @@ public class Top250Fragment extends Fragment {
                                         JSONObject imageObject = movieObject.getJSONObject("images");
                                         movie.setImageURL(imageObject.getString("large"));
 
-//                                        private Cast[] casts;
-//                                        private Cast[] directors;
                                         movie.setRating(movieObject.getJSONObject("rating").getDouble("average"));
                                         movie.setUrl(movieObject.getString("alt"));
 
@@ -159,7 +148,7 @@ public class Top250Fragment extends Fragment {
                                         List<Cast> casts = new ArrayList<Cast>();
                                         for (int j = 0; j<castsArray.length(); j++){
                                             Cast cast = new Cast();
-                                            JSONObject object = castsArray.getJSONObject(j).getJSONObject("avatars");
+                                            Object object = castsArray.getJSONObject(j).get("avatars");
                                             if(castsArray.getJSONObject(j).get("avatars") != JSONObject.NULL) {
                                                 cast.setImageUrl(castsArray.getJSONObject(j).getJSONObject("avatars").getString("large"));
                                             }
@@ -172,7 +161,7 @@ public class Top250Fragment extends Fragment {
                                         List<Cast> directors = new ArrayList<Cast>();
                                         for (int j = 0; j<directorsArray.length(); j++){
                                             Cast cast = new Cast();
-                                            if(castsArray.getJSONObject(j).get("avatars") != JSONObject.NULL) {
+                                            if(directorsArray.getJSONObject(j).get("avatars") != JSONObject.NULL) {
                                                 cast.setImageUrl(directorsArray.getJSONObject(j).getJSONObject("avatars").getString("large"));
                                             }
                                             cast.setName(directorsArray.getJSONObject(j).getString("name"));
@@ -180,7 +169,7 @@ public class Top250Fragment extends Fragment {
                                         }
                                         movie.setDirectors(directors);
 
-                                        movieStore.getTop250MovieList().add(movie);
+                                        movieStore.getSearchList().add(movie);
                                     }
                                     adapter.notifyDataSetChanged();
                                 } catch (Exception e) {
@@ -193,5 +182,4 @@ public class Top250Fragment extends Fragment {
             }
         }
     }
-
 }
