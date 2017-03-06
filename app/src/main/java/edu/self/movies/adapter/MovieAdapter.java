@@ -1,16 +1,17 @@
 package edu.self.movies.adapter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import java.util.List;
 
 import edu.self.movies.Model.Movie;
 import edu.self.movies.R;
+import edu.self.movies.activity.MovieDetailActivity;
 import edu.self.movies.holder.MovieHolder;
 
 /**
@@ -28,7 +29,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieHolder> {
 
     @Override
     public void onBindViewHolder(MovieHolder holder, int position) {
-        Movie movie = movieList.get(position);
+        final Movie movie = movieList.get(position);
         holder.getCnNameTextView().setText(movie.getCnName());
         holder.getEnNameTextView().setText(movie.getEnName());
         holder.getYearTextView().setText(movie.getYear());
@@ -36,7 +37,10 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieHolder> {
         holder.getCardView().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(context, "Clicked", Toast.LENGTH_SHORT).show();
+
+                Intent intent = new Intent(context, MovieDetailActivity.class);
+                intent.putExtra("movie", movie);
+                context.startActivity(intent);
             }
         });
     }

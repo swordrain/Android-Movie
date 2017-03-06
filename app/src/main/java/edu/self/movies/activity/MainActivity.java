@@ -13,7 +13,6 @@ import android.support.v7.widget.Toolbar;
 import edu.self.movies.R;
 import edu.self.movies.fragment.ComingFragment;
 import edu.self.movies.fragment.InTheaterFragment;
-import edu.self.movies.fragment.SearchFragment;
 import edu.self.movies.fragment.Top250Fragment;
 
 public class MainActivity extends AppCompatActivity {
@@ -46,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public int getCount() {
-                return 4;
+                return 3;
             }
 
             @Override
@@ -61,9 +60,6 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case 2:
                         fragment = new ComingFragment();
-                        break;
-                    case 3:
-                        fragment = new SearchFragment();
                         break;
                     default:
 
@@ -81,8 +77,6 @@ public class MainActivity extends AppCompatActivity {
                         return "In Theater";
                     case 2:
                         return "Coming";
-                    case 3:
-                        return "Search";
                     default:
                         return "Top250";
                 }

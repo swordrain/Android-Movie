@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.self.movies.Model.Cast;
 import edu.self.movies.Model.Movie;
 import edu.self.movies.R;
 import edu.self.movies.adapter.MovieAdapter;
@@ -140,7 +141,40 @@ public class Top250Fragment extends Fragment {
                                         movie.setEnName(movieObject.getString("original_title"));
                                         movie.setYear(movieObject.getString("year"));
                                         JSONObject imageObject = movieObject.getJSONObject("images");
-                                        movie.setImageURL(imageObject.getString("small"));
+                                        movie.setImageURL(imageObject.getString("large"));
+
+//                                        private Cast[] casts;
+//                                        private Cast[] directors;
+                                        movie.setRating(movieObject.getJSONObject("rating").getDouble("average"));
+                                        movie.setUrl(movieObject.getString("alt"));
+
+                                        JSONArray genresArray = movieObject.getJSONArray("genres");
+                                        String[] genres = new String[genresArray.length()];
+                                        for(int j = 0; j < genresArray.length(); j++){
+                                            genres[j] = genresArray.getString(j);
+                                        }
+                                        movie.setGenres(genres);
+
+                                        JSONArray castsArray = movieObject.getJSONArray("casts");
+                                        List<Cast> casts = new ArrayList<Cast>();
+                                        for (int j = 0; j<castsArray.length(); j++){
+                                            Cast cast = new Cast();
+                                            cast.setImageUrl(castsArray.getJSONObject(j).getJSONObject("avatars").getString("large"));
+                                            cast.setName(castsArray.getJSONObject(j).getString("name"));
+                                            casts.add(cast);
+                                        }
+                                        movie.setCasts(casts);
+
+                                        JSONArray directorsArray = movieObject.getJSONArray("directors");
+                                        List<Cast> directors = new ArrayList<Cast>();
+                                        for (int j = 0; j<directorsArray.length(); j++){
+                                            Cast cast = new Cast();
+                                            cast.setImageUrl(directorsArray.getJSONObject(j).getJSONObject("avatars").getString("large"));
+                                            cast.setName(directorsArray.getJSONObject(j).getString("name"));
+                                            directors.add(cast);
+                                        }
+                                        movie.setDirectors(directors);
+
                                         movieStore.getTop250MovieList().add(movie);
                                     }
                                     adapter.notifyDataSetChanged();
